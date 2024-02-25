@@ -6,7 +6,19 @@ import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class HelloTest {
+class TestCompletableFuture {
+
+  @Test
+  void test_async() throws ExecutionException, InterruptedException {
+    CompletableFuture<String> completableFuture = new CompletableFuture<>();
+    Executors.newCachedThreadPool().submit(() -> {
+      Thread.sleep(500);
+      completableFuture.complete("vamos");
+      return null;
+    });
+    String s = completableFuture.get();
+    assertEquals("vamos", s);
+  }
 
   @Test
   void testGetSync() throws ExecutionException, InterruptedException {
@@ -17,23 +29,6 @@ class HelloTest {
 
   }
 
-  @Test
-  void test_async() throws ExecutionException, InterruptedException {
-
-    CompletableFuture<String> completableFuture = calculateAsync();
-    String s = completableFuture.get();
-    assertEquals("vamos", s);
-  }
-
-  private CompletableFuture<String> calculateAsync() {
-    CompletableFuture<String> completableFuture = new CompletableFuture<>();
-    Executors.newCachedThreadPool().submit(() -> {
-      Thread.sleep(500);
-      completableFuture.complete("vamos");
-      return null;
-    });
-    return completableFuture;
-  }
 
 
 }
