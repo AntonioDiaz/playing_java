@@ -1,3 +1,3 @@
-# playing_java
+# Java Examples
 
 01 - Completable Future
