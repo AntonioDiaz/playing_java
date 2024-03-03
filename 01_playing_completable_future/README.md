@@ -3,6 +3,15 @@
 <!-- TOC -->
   * [Links](#links)
   * [Code](#code)
+    * [Wait for the completableFuture is complete: get](#wait-for-the-completablefuture-is-complete--get)
+    * [static method: supplyAsync](#static-method--supplyasync)
+    * [Process results: __thenApply__](#process-results--thenapply)
+    * [Process results: __thenCompose__](#process-results--thencompose)
+    * [Process results: __thenCombine__](#process-results--thencombine)
+    * [Run Futures in Parallel: __allOf__](#run-futures-in-parallel--allof)
+    * [Run Futures in Parallel: __joining__](#run-futures-in-parallel--joining)
+    * [Error handling: __handle__](#error-handling--handle)
+    * [Error handling: __completeExceptionally__](#error-handling--completeexceptionally)
 <!-- TOC -->
 
 ## Links
@@ -10,20 +19,20 @@ https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CompletableFuture
 https://www.baeldung.com/java-completablefuture
 
 ## Code
-* get(): waits for the completableFuture is complete.
+### Wait for the completableFuture is complete: get
 ```java
-CompletableFuture<String> completableFuture = new CompletableFuture<>();
+CompletableFuture<String> future = new CompletableFuture<>();
 Executors.newCachedThreadPool().submit(() -> {
   Thread.sleep(500);
-  completableFuture.complete("returned_value");
+  future.complete("returned_value");
   return null;
 });
-String s = completableFuture.get();
+String s = future.get();
 ```
 
-* supplyAsync(): static method 
+### static method: supplyAsync 
 ```java
-CompletableFuture<String> completableFuture = CompletableFuture.supplyAsync(() -> {
+CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
   try {
     Thread.sleep(5_000);
     return "1234";
@@ -31,20 +40,20 @@ CompletableFuture<String> completableFuture = CompletableFuture.supplyAsync(() -
     throw new RuntimeException(e);
   }
 });
-assertEquals("1234", completableFuture.get());
+assertEquals("1234", future.get());
 ```
 
-* Process results: __thenApply__
+### Process results: __thenApply__
 ```java
 @Test
 void test_thenApply() throws Exception {
-    CompletableFuture<String> completableFuture = CompletableFuture.supplyAsync(() -> "1234");
-    CompletableFuture<String> completableFutureSecond = completableFuture.thenApply((s) -> "*" + s);
-    assertEquals("*1234", completableFutureSecond.get());
+    CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> "1234");
+    CompletableFuture<String> futureSecond = future.thenApply((s) -> "*" + s);
+    assertEquals("*1234", futureSecond.get());
 }
 ```
 
-* Process results: __thenCompose__
+### Process results: __thenCompose__
 ```java
 CompletableFuture<String> future = CompletableFuture
         .supplyAsync(() -> "1234")
@@ -52,7 +61,7 @@ CompletableFuture<String> future = CompletableFuture
 assertEquals("*1234", future.get());
 ```
 
-* Process results: __thenCombine__
+### Process results: __thenCombine__
 ````java
 CompletableFuture<String> future = CompletableFuture
         .supplyAsync(() -> "1234")
@@ -63,7 +72,7 @@ CompletableFuture<String> future = CompletableFuture
 assertEquals("*1234", future.get());
 ````
 
-* __allOf__: Run Futures in Parallel
+### Run Futures in Parallel: __allOf__
 ```java
 CompletableFuture<Void> future1 = CompletableFuture.runAsync(()->TestCompletableFuture.count++);
 CompletableFuture<Void> future2 = CompletableFuture.runAsync(()->TestCompletableFuture.count++);
@@ -74,7 +83,7 @@ assertTrue(future2.isDone());
 assertTrue(future3.isDone());
 ```
 
-* __joining__: Run Futures in Parallel
+### Run Futures in Parallel: __joining__
 ```java
 CompletableFuture<String> future1 = CompletableFuture.supplyAsync(() -> "Hello");
 CompletableFuture<String> future2 = CompletableFuture.supplyAsync(() -> "Beautiful");
@@ -83,4 +92,30 @@ String combined = Stream.of(future1, future2, future3)
         .map(CompletableFuture::join)
         .collect(Collectors.joining(" "));
 assertEquals("Hello Beautiful World", combined);
+```
+
+### Error handling: __handle__
+```java
+String name = null;
+CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
+  if (name == null) {
+    throw new RuntimeException("Computation error!");
+  }
+  return "Hello, " + name;
+}).handle((s, t) -> {
+  return s != null ? s : "Hello, Stranger!";
+});
+assertEquals("Hello, Stranger!", future.get());
+```
+
+### Error handling: __completeExceptionally__
+```java
+String name = null;
+CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
+  name.length();
+  return "Hello, " + name;
+});
+future.completeExceptionally(new RuntimeException("Calculation failed!"));
+ExecutionException executionException = assertThrows(ExecutionException.class, future::get);
+assertEquals("Calculation failed!", executionException.getCause().getMessage());
 ```

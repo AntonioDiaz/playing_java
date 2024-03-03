@@ -7,8 +7,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
 class TestCompletableFuture {
@@ -16,18 +15,18 @@ class TestCompletableFuture {
   /** get(): waits for the completableFuture is complete. */
   @Test
   void test_async() throws ExecutionException, InterruptedException {
-    CompletableFuture<String> completableFuture = new CompletableFuture<>();
+    CompletableFuture<String> future = new CompletableFuture<>();
     Executors.newCachedThreadPool().submit(() -> {
       Thread.sleep(500);
-      completableFuture.complete("returned_value");
+      future.complete("returned_value");
       return null;
     });
-    assertEquals("returned_value", completableFuture.get());
+    assertEquals("returned_value", future.get());
   }
 
   @Test
   void test_supplyAsync() throws ExecutionException, InterruptedException {
-    CompletableFuture<String> completableFuture = CompletableFuture.supplyAsync(() -> {
+    CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
       try {
         Thread.sleep(5_000);
         return "1234";
@@ -36,7 +35,7 @@ class TestCompletableFuture {
       }
     });
     log.info("continue");
-    assertEquals("1234", completableFuture.get());
+    assertEquals("1234", future.get());
   }
 
   @Test
@@ -89,6 +88,33 @@ class TestCompletableFuture {
             .map(CompletableFuture::join)
             .collect(Collectors.joining(" "));
     assertEquals("Hello Beautiful World", combined);
+  }
+
+  @Test
+  void test_error_handle() throws Exception {
+    String name = null;
+    CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
+      if (name == null) {
+        throw new RuntimeException("Computation error!");
+      }
+      return "Hello, " + name;
+    }).handle((s, t) -> {
+      log.error(t.getMessage());
+      return s != null ? s : "Hello, Stranger!";
+    });
+    assertEquals("Hello, Stranger!", future.get());
+  }
+
+  @Test
+  void test_error_completeExceptionally() {
+    String name = null;
+    CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
+      name.length();
+      return "Hello, " + name;
+    });
+    future.completeExceptionally(new RuntimeException("Calculation failed!"));
+    ExecutionException executionException = assertThrows(ExecutionException.class, future::get);
+    assertEquals("Calculation failed!", executionException.getCause().getMessage());
   }
 
 }
